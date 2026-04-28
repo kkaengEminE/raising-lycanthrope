@@ -48,6 +48,25 @@ export class AdSimulator {
     return Math.max(0, ((this.cooldowns.get(slot) ?? 0) - performance.now()) / 1000);
   }
 
+  /** 모든 슬롯의 쿨다운을 직렬화 (저장용). performance.now() 기준 ms. */
+  serializeCooldowns(): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const [slot, ts] of this.cooldowns) {
+      const remaining = ts - performance.now();
+      if (remaining > 0) out[slot] = remaining;
+    }
+    return out;
+  }
+
+  /** 직렬화된 쿨다운(잔여 ms) 을 현재 시점 기준으로 복원. */
+  restoreCooldowns(remaining: Record<string, number>): void {
+    const now = performance.now();
+    this.cooldowns.clear();
+    for (const [slot, ms] of Object.entries(remaining)) {
+      if (ms > 0) this.cooldowns.set(slot as AdSlot, now + ms);
+    }
+  }
+
   watch(slot: AdSlot): AdResult | null {
     if (!this.isReady(slot)) return null;
     const now = performance.now();

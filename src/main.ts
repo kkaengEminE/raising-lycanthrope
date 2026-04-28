@@ -17,6 +17,7 @@ import { AdSimulator } from '@/monetization/AdSimulator';
 import { HUD } from '@/ui/HUD';
 import { TitleScreen } from '@/ui/TitleScreen';
 import { PerformanceTier } from '@/render/PerformanceTier';
+import { saveSystem } from '@/persistence/SaveSystem';
 import '@/characters/placeholderParts';
 import '@/characters/chefParts';
 import '@/characters/boxerParts';
@@ -70,7 +71,7 @@ async function bootGame(): Promise<void> {
 
   const character = new Character('Protagonist');
   engine.scene.add(character.group);
-  character.applyForm('office_day');
+  // applyForm 은 savedData 로드 후에 호출 (저장된 직업/시간대 반영)
 
   const playerCtl = new PlayerController({ character, camera: engine.camera });
 
@@ -95,13 +96,26 @@ async function bootGame(): Promise<void> {
     onSlash: () => character.animation.play('attack_swing', { fadeIn: 0.05 }),
   });
 
+  // 저장본 로드 (없으면 default)
+  const savedData = saveSystem.load();
+  const hasSave = saveSystem.hasSave();
+
   const economy = new EconomyLoop();
+  economy.state.gold = savedData.gold;
+  economy.state.job = savedData.job;
+  karma.setValue(savedData.karma);
+
   const player: PlayerState = {
     hp: COMBAT.PLAYER_BASE_HP,
     maxHp: COMBAT.PLAYER_BASE_HP,
     invulUntil: 0,
-    currentJob: 'office',
+    currentJob: savedData.job,
   };
+  let totalPlayTime = savedData.totalPlayTime;
+
+  // 저장된 폼 적용 (없으면 직업 기준 day 폼)
+  const initialForm = slotRegistry.getForm(savedData.formId) ? savedData.formId : `${savedData.job}_day`;
+  character.applyForm(slotRegistry.getForm(initialForm) ? initialForm : 'office_day');
 
   const ads = new AdSimulator({
     economy,
@@ -113,6 +127,7 @@ async function bootGame(): Promise<void> {
       console.log('[gacha]', partId);
     },
   });
+  ads.restoreCooldowns(savedData.adCooldowns);
 
   const hud = new HUD({
     economy,
@@ -186,6 +201,7 @@ async function bootGame(): Promise<void> {
     cycle.update(dt);
 
     economy.tick(dt, engine.lighting.getTimeOfDay() === 'day', karma.getValue());
+    totalPlayTime += dt;
 
     // 자연 회복 (선 성향 강할 때만)
     if (karma.getAlignment() === 'good' && player.hp < player.maxHp) {
@@ -209,7 +225,22 @@ async function bootGame(): Promise<void> {
     hud.toast(`성능 자동 감지: ${recommended} tier`, 'success');
   }, 1500);
 
-  hud.toast('낮 3분 / 밤 2분 사이클 시작', 'success');
+  // 자동 저장 — 매 10초
+  saveSystem.startAutosave(() => ({
+    gold: economy.state.gold,
+    karma: karma.getValue(),
+    job: player.currentJob,
+    formId: character.getCurrentFormId() ?? 'office_day',
+    cycleCount: 0,
+    totalPlayTime,
+    adCooldowns: ads.serializeCooldowns(),
+  }), 10);
+
+  if (hasSave) {
+    hud.toast(`저장본 로드: ${savedData.gold.toLocaleString()} G, 카르마 ${savedData.karma.toFixed(2)}`, 'success');
+  } else {
+    hud.toast('낮 3분 / 밤 2분 사이클 시작', 'success');
+  }
   setTimeout(() => hud.toast('WASD/화살표로 이동, 마우스 드래그로 슬라이드 공격', 'success'), 3500);
   if (manifestResult.loaded > 0) {
     setTimeout(() => hud.toast(`GLB 부품 ${manifestResult.loaded}개 로드됨`, 'success'), 5500);
@@ -321,6 +352,34 @@ function setupGUI(
     )
     .name('야간 변신 시퀀스');
 
+  const saveFolder = gui.addFolder('세이브');
+  saveFolder
+    .add({
+      manualSave: () => {
+        if (!ctx) return;
+        saveSystem.save({
+          gold: ctx.economy.state.gold,
+          karma: ctx.karma.getValue(),
+          job: ctx.player.currentJob,
+          formId: ctx.character.getCurrentFormId() ?? 'office_day',
+          cycleCount: 0,
+          totalPlayTime: 0,
+          adCooldowns: ctx.ads.serializeCooldowns(),
+        });
+        hud.toast('수동 저장 완료', 'success');
+      },
+    }, 'manualSave')
+    .name('지금 저장');
+  saveFolder
+    .add({
+      reset: () => {
+        if (!confirm('정말로 모든 진행을 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.')) return;
+        saveSystem.clear();
+        location.reload();
+      },
+    }, 'reset')
+    .name('진행 초기화 (페이지 새로고침)');
+
   return gui;
 }
 
@@ -337,6 +396,7 @@ if (import.meta.hot) {
     ctx.damageNums.dispose();
     ctx.hud.dispose();
     ctx.playerCtl.dispose();
+    saveSystem.stopAutosave();
     ctx = null;
   });
 }
