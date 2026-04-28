@@ -1,0 +1,22 @@
+{
+  "name": "raising-lycanthrope",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "description": "늑대인간 키우기: 낮과 밤의 이면 — Three.js 웹 프로토타입",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "three": "^0.160.0",
+    "lil-gui": "^0.19.2"
+  },
+  "devDependencies": {
+    "@types/three": "^0.160.0",
+    "typescript": "^5.3.3",
+    "vite": "^5.0.10"
+  }
+}
