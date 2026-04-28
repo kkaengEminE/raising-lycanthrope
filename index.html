@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="ko">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>늑대인간 키우기: 낮과 밤의 이면</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        font-family: -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", "Pretendard", "Noto Sans KR", sans-serif;
+      }
+      html, body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        background: #050614;
+        overflow: hidden;
+      }
+      #app {
+        position: fixed;
+        inset: 0;
+      }
+      canvas#scene {
+        display: block;
+        width: 100%;
+        height: 100%;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+      }
+      #ui-overlay {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 10;
+      }
+      #ui-overlay > * {
+        pointer-events: auto;
+      }
+      #title-card {
+        position: absolute;
+        top: 16px;
+        left: 16px;
+        padding: 8px 14px;
+        background: rgba(10, 12, 30, 0.55);
+        border: 1px solid rgba(155, 181, 255, 0.35);
+        border-radius: 8px;
+        color: #e8ecff;
+        font-size: 14px;
+        line-height: 1.5;
+        backdrop-filter: blur(4px);
+      }
+      #title-card .ko { font-weight: 700; }
+      #title-card .en { opacity: 0.7; font-size: 12px; }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <canvas id="scene"></canvas>
+    </div>
+    <div id="ui-overlay">
+      <div id="title-card">
+        <div class="ko">늑대인간 키우기: 낮과 밤의 이면</div>
+        <div class="en">Raising a Lycanthrope: Day and Night</div>
+      </div>
+    </div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
