@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { Engine } from '@/core/Engine';
 import { buildPrototypeScene } from '@/scenes/PrototypeScene';
 import { Character } from '@/core/Character';
+import { PlayerController } from '@/core/PlayerController';
 import { KarmaController, selectFormForAlignment } from '@/core/KarmaController';
 import { TransformController } from '@/core/TransformController';
 import { TransformBurst } from '@/vfx/TransformBurst';
@@ -30,6 +31,7 @@ if (!canvas) throw new Error('canvas#scene not found');
 interface GameContext {
   engine: Engine;
   character: Character;
+  playerCtl: PlayerController;
   karma: KarmaController;
   cycle: CycleManager;
   transformCtl: TransformController;
@@ -69,6 +71,8 @@ async function bootGame(): Promise<void> {
   const character = new Character('Protagonist');
   engine.scene.add(character.group);
   character.applyForm('office_day');
+
+  const playerCtl = new PlayerController({ character, camera: engine.camera });
 
   const karma = new KarmaController();
   karma.attach(character);
@@ -125,7 +129,7 @@ async function bootGame(): Promise<void> {
   const gui = setupGUI(engine, character, karma, transformCtl, cycle, hud);
 
   ctx = {
-    engine, character, karma, cycle, transformCtl, vfx,
+    engine, character, playerCtl, karma, cycle, transformCtl, vfx,
     enemies, slide, damageNums, guardian,
     economy, ads, hud, perfTier, gui, player,
   };
@@ -172,6 +176,7 @@ async function bootGame(): Promise<void> {
   // === 프레임 콜백 ===
   engine.onFrame((dt) => {
     perfTier.tick();
+    playerCtl.update(dt);
     transformCtl.update();
     vfx.update(dt);
     enemies.setPlayerPosition(character.group.position);
@@ -205,7 +210,7 @@ async function bootGame(): Promise<void> {
   }, 1500);
 
   hud.toast('낮 3분 / 밤 2분 사이클 시작', 'success');
-  setTimeout(() => hud.toast('밤이 되면 마우스 드래그로 슬라이드 공격', 'success'), 3500);
+  setTimeout(() => hud.toast('WASD/화살표로 이동, 마우스 드래그로 슬라이드 공격', 'success'), 3500);
   if (manifestResult.loaded > 0) {
     setTimeout(() => hud.toast(`GLB 부품 ${manifestResult.loaded}개 로드됨`, 'success'), 5500);
   }
@@ -331,6 +336,7 @@ if (import.meta.hot) {
     ctx.slide.dispose();
     ctx.damageNums.dispose();
     ctx.hud.dispose();
+    ctx.playerCtl.dispose();
     ctx = null;
   });
 }
