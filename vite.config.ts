@@ -1,7 +1,8 @@
 import { defineConfig } from 'vite';
 import { fileURLToPath, URL } from 'node:url';
 
-export default defineConfig({
+export default defineConfig(({ command }) => ({
+  base: command === 'build' ? '/raising-lycanthrope/' : '/',
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -16,4 +17,4 @@ export default defineConfig({
     target: 'es2022',
     sourcemap: true,
   },
-});
+}));
