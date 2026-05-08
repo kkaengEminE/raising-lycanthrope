@@ -61,7 +61,7 @@ let ctx: GameContext | null = null;
 async function bootGame(): Promise<void> {
   // GLB manifest 사전 로드 — procedural 부품과 같은 ID 면 GLB 가 우선.
   // manifest.json 이 비어있거나 누락되면 procedural 그대로 사용.
-  const manifestResult = await ManifestLoader.load('/assets/parts/manifest.json').catch((e) => {
+  const manifestResult = await ManifestLoader.load(`${import.meta.env.BASE_URL}assets/parts/manifest.json`).catch((e) => {
     console.warn('[boot] manifest load error', e);
     return { loaded: 0, failed: 0 };
   });
